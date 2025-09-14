@@ -4,10 +4,10 @@ HOST = "10.0.0.118"
 PORT = 7642
 
 pyautogui.PAUSE = 0
-
+# pyautogui.FAILSAFE = False  # optional
 
 MODS = {
-    "shift", "ctrl", "alt","command", "cmd",
+    "shift", "ctrl", "alt", "command", "cmd",
     "shiftleft", "shiftright", "ctrlleft", "ctrlright", "altleft", "altright"
 }
 
@@ -24,12 +24,15 @@ ALIASES = {
     "bksp": "backspace",
 }
 
+
 def norm_key(key: str) -> str:
     key = key.strip().lower()
     return ALIASES.get(key, key)
 
+
 def is_modifier(key: str) -> bool:
     return key in MODS
+
 
 def serve():
     s = socket.socket()
@@ -66,6 +69,7 @@ def serve():
                                 except Exception as e:
                                     print(f"Bad mouse_move '{raw}': {e}")
                             continue
+
                         if raw.startswith("mouse_click"):
                             parts = raw.split()
                             if len(parts) == 2 and parts[1] in ("left", "right", "middle"):
@@ -73,6 +77,28 @@ def serve():
                                     pyautogui.click(button=parts[1])
                                 except Exception as e:
                                     print(f"Bad mouse_click '{raw}': {e}")
+                            continue
+
+                        if raw.startswith("mouse_scroll"):
+                            parts = raw.split()
+                            if len(parts) == 2:
+                                try:
+                                    steps = int(parts[1]) * 50
+                                    # invert sign: client sends +down, pyautogui +up
+                                    pyautogui.scroll(-steps)
+                                except Exception as e:
+                                    print(f"Bad mouse_scroll '{raw}': {e}")
+                            continue
+
+                        if raw.startswith("mouse_hscroll"):
+                            parts = raw.split()
+                            if len(parts) == 2:
+                                try:
+                                    steps = int(parts[1]) * 5
+                                    # positive = scroll right
+                                    pyautogui.hscroll(steps)
+                                except Exception as e:
+                                    print(f"Bad mouse_hscroll '{raw}': {e}")
                             continue
 
                         key = norm_key(raw)
@@ -100,6 +126,7 @@ def serve():
             print(f"Client error: {e}")
         finally:
             print("Client disconnected")
+
 
 if __name__ == "__main__":
     serve()
